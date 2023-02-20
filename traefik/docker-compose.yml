@@ -74,3 +74,35 @@ services:
       # Apply autentificiation with http challenge
       - "traefik.http.routers.inner-whoami-secured.tls=true"
       - "traefik.http.routers.inner-whoami-secured.tls.certresolver=myhttpchallenge"
+      
+   portainer:
+    image: "portainer/portainer-ce:latest"
+    container_name: "portainer"
+    command: -H unix:///var/run/docker.sock
+    restart: always
+    networks:
+      - "traefik"
+    env_file:
+      - ./.env
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    labels:
+      - "traefik.enable=true"
+      # Get the routes from http
+      - "traefik.http.routers.portainer.rule=Host(`${PORTAINER_URL}`)"
+      - "traefik.http.routers.portainer.entrypoints=web"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+      # Redirect these routes to https
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.routers.inner-whoami.middlewares=redirect-to-https@docker"
+      # Get the routes from https
+      - "traefik.http.routers.portainer-secured.rule=Host(`${PORTAINER_URL}`)"
+      - "traefik.http.routers.portainer-secured.entrypoints=web-secure"
+      - "traefik.http.services.portainer-secured.loadbalancer.server.port=9000"
+      # Apply autentificiation with http challenge
+      - "traefik.http.routers.portainer-secured.tls=true"
+      - "traefik.http.routers.portainer-secured.tls.certresolver=myhttpchallenge"
+
+volumes:
+  portainer_data:
